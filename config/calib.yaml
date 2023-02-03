@@ -1,17 +1,18 @@
 # Data path. adjust them!
 common:
-    image_file: "/home/ycj/data/calib/image/0.png"
-    pcd_file: "/home/ycj/data/calib/pcd/0.pcd"
-    result_file: "/home/ycj/data/calib/extrinsic.txt"
+    image_file: "/Users/sdhanjal/Documents/Output/left_wcam/distorted/000001662130.png"
+    pcd_file: "/Users/sdhanjal/Documents/Output/dcam/pointcloud/000001662130.pcd"
+    result_file: "/Users/sdhanjal/Documents/Output/extrinsic_result.txt"
 
 # Camera Parameters. Adjust them!
 camera:
-    camera_matrix: [1364.45, 0.0,      958.327,
-                0.0,     1366.46,  535.074,
-                0.0,     0.0,      1.0     ]
-    dist_coeffs: [0.0958277, -0.198233, -0.000147133, -0.000430056, 0.000000]
+    camera_matrix: [582.12511985, 0.0,      507.5,
+                    0.0,     582.12511985,  507.5,
+                    0.0,     0.0,      1.0     ]
+    # 6 dist coeffs in format radial [k1,k2,k3,k4], tangential [p1, p2]
+    dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 # Calibration Parameters.!
 calib:
-    calib_config_file: "/home/ycj/catkin_ws/src/livox_camera_calib/config/config_outdoor.yaml"
+    calib_config_file: "/Users/sdhanjal/Documents/code/livox_camera_calib/config/config_mlr.yaml"
     use_rough_calib: true # set true if your initial_extrinsic is bad

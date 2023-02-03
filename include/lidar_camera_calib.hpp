@@ -119,7 +119,7 @@ public:
                      const float range_inc, const float degree_inc,
                      Eigen::Matrix2f &covarance);
   // 相机内参
-  float fx_, fy_, cx_, cy_, k1_, k2_, p1_, p2_, k3_, s_;
+  float fx_, fy_, cx_, cy_, k1_, k2_, k3_, k4_, p1_, p2_, s_;
   int width_, height_;
   cv::Mat camera_matrix_;
   cv::Mat dist_coeffs_;
@@ -235,9 +235,11 @@ bool Calibration::loadCameraConfig(const std::string &camera_file) {
   cy_ = camera_matrix_.at<double>(1, 2);
   k1_ = dist_coeffs_.at<double>(0, 0);
   k2_ = dist_coeffs_.at<double>(0, 1);
-  p1_ = dist_coeffs_.at<double>(0, 2);
-  p2_ = dist_coeffs_.at<double>(0, 3);
-  k3_ = dist_coeffs_.at<double>(0, 4);
+  k3_ = dist_coeffs_.at<double>(0, 2);
+  k4_ = dist_coeffs_.at<double>(0, 3);
+  p1_ = dist_coeffs_.at<double>(0, 4);
+  p2_ = dist_coeffs_.at<double>(0, 5);
+
   std::cout << "Camera Matrix: " << std::endl << camera_matrix_ << std::endl;
   std::cout << "Distortion Coeffs: " << std::endl << dist_coeffs_ << std::endl;
   return true;
@@ -279,6 +281,7 @@ bool Calibration::loadCalibConfig(const std::string &config_file) {
   return true;
 };
 
+// TODO: update distortion here
 // Color the point cloud by rgb image using given extrinsic
 void Calibration::colorCloud(
     const Vector6d &extrinsic_params, const int density,
@@ -308,7 +311,7 @@ void Calibration::colorCloud(
   cv::Mat camera_matrix =
       (cv::Mat_<double>(3, 3) << fx_, 0.0, cx_, 0.0, fy_, cy_, 0.0, 0.0, 1.0);
   cv::Mat distortion_coeff =
-      (cv::Mat_<double>(1, 5) << k1_, k2_, p1_, p2_, k3_);
+      (cv::Mat_<double>(1, 6) << k1_, k2_, k3_, k4_, p1_, p2_);
   cv::Mat r_vec =
       (cv::Mat_<double>(3, 1)
            << rotation_vector3.angle() * rotation_vector3.axis().transpose()[0],
@@ -317,8 +320,9 @@ void Calibration::colorCloud(
   cv::Mat t_vec = (cv::Mat_<double>(3, 1) << extrinsic_params[3],
                    extrinsic_params[4], extrinsic_params[5]);
   std::vector<cv::Point2f> pts_2d;
-  cv::projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                    pts_2d);
+  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
+                       pts_2d);
+
   int image_rows = rgb_img.rows;
   int image_cols = rgb_img.cols;
   color_cloud = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(
@@ -398,6 +402,7 @@ void Calibration::edgeDetector(
   // cv::waitKey();
 }
 
+// TODO: update distortion here
 void Calibration::projection(
     const Vector6d &extrinsic_params,
     const pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_cloud,
@@ -422,7 +427,7 @@ void Calibration::projection(
   cv::Mat camera_matrix =
       (cv::Mat_<double>(3, 3) << fx_, 0.0, cx_, 0.0, fy_, cy_, 0.0, 0.0, 1.0);
   cv::Mat distortion_coeff =
-      (cv::Mat_<double>(1, 5) << k1_, k2_, p1_, p2_, k3_);
+      (cv::Mat_<double>(1, 6) << k1_, k2_, k3_, k4_, p1_, p2_);
   cv::Mat r_vec =
       (cv::Mat_<double>(3, 1)
            << rotation_vector3.angle() * rotation_vector3.axis().transpose()[0],
@@ -432,8 +437,8 @@ void Calibration::projection(
                    extrinsic_params[4], extrinsic_params[5]);
   // project 3d-points into image view
   std::vector<cv::Point2f> pts_2d;
-  cv::projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                    pts_2d);
+  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
+                       pts_2d);
   cv::Mat image_project = cv::Mat::zeros(height_, width_, CV_16UC1);
   cv::Mat rgb_image_project = cv::Mat::zeros(height_, width_, CV_8UC3);
   for (size_t i = 0; i < pts_2d.size(); ++i) {
@@ -1006,6 +1011,7 @@ void Calibration::calcLine(
   }
 }
 
+// TODO: update distortion here
 void Calibration::buildVPnp(
     const Vector6d &extrinsic_params, const int dis_threshold,
     const bool show_residual,
@@ -1022,7 +1028,7 @@ void Calibration::buildVPnp(
     }
     img_pts_container.push_back(row_pts_container);
   }
-  std::vector<cv::Point3d> pts_3d;
+  std::vector<cv::Point3f> pts_3d;
   Eigen::AngleAxisd rotation_vector3;
   rotation_vector3 =
       Eigen::AngleAxisd(extrinsic_params[0], Eigen::Vector3d::UnitZ()) *
@@ -1036,7 +1042,7 @@ void Calibration::buildVPnp(
   cv::Mat camera_matrix =
       (cv::Mat_<double>(3, 3) << fx_, 0.0, cx_, 0.0, fy_, cy_, 0.0, 0.0, 1.0);
   cv::Mat distortion_coeff =
-      (cv::Mat_<double>(1, 5) << k1_, k2_, p1_, p2_, k3_);
+      (cv::Mat_<double>(1, 6) << k1_, k2_, k3_, k4_, p1_, p2_);
   cv::Mat r_vec =
       (cv::Mat_<double>(3, 1)
            << rotation_vector3.angle() * rotation_vector3.axis().transpose()[0],
@@ -1045,15 +1051,15 @@ void Calibration::buildVPnp(
   cv::Mat t_vec = (cv::Mat_<double>(3, 1) << extrinsic_params[3],
                    extrinsic_params[4], extrinsic_params[5]);
   // project 3d-points into image view
-  std::vector<cv::Point2d> pts_2d;
+  std::vector<cv::Point2f> pts_2d;
   // debug
   // std::cout << "camera_matrix:" << camera_matrix << std::endl;
   // std::cout << "distortion_coeff:" << distortion_coeff << std::endl;
   // std::cout << "r_vec:" << r_vec << std::endl;
   // std::cout << "t_vec:" << t_vec << std::endl;
   // std::cout << "pts 3d size:" << pts_3d.size() << std::endl;
-  cv::projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                    pts_2d);
+  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
+                       pts_2d);
   pcl::PointCloud<pcl::PointXYZ>::Ptr line_edge_cloud_2d(
       new pcl::PointCloud<pcl::PointXYZ>);
   std::vector<int> line_edge_cloud_2d_number;
@@ -1190,6 +1196,7 @@ void Calibration::buildVPnp(
   }
 }
 
+// TODO: update distortion here
 void Calibration::buildPnp(
     const Vector6d &extrinsic_params, const int dis_threshold,
     const bool show_residual,
@@ -1218,7 +1225,7 @@ void Calibration::buildPnp(
   cv::Mat camera_matrix =
       (cv::Mat_<double>(3, 3) << fx_, s_, cx_, 0.0, fy_, cy_, 0.0, 0.0, 1.0);
   cv::Mat distortion_coeff =
-      (cv::Mat_<double>(1, 5) << k1_, k2_, p1_, p2_, k3_);
+      (cv::Mat_<double>(1, 6) << k1_, k2_, k3_, k4_, p1_, p2_);
   cv::Mat r_vec =
       (cv::Mat_<double>(3, 1)
            << rotation_vector3.angle() * rotation_vector3.axis().transpose()[0],
@@ -1228,8 +1235,8 @@ void Calibration::buildPnp(
                    extrinsic_params[4], extrinsic_params[5]);
   // project 3d-points into image view
   std::vector<cv::Point2f> pts_2d;
-  cv::projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                    pts_2d);
+  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
+                       pts_2d);
   pcl::PointCloud<pcl::PointXYZ>::Ptr line_edge_cloud_2d(
       new pcl::PointCloud<pcl::PointXYZ>);
   for (size_t i = 0; i < pts_2d.size(); i++) {
@@ -1469,8 +1476,6 @@ void Calibration::calcResidual(const Vector6d &extrinsic_params,
     float cy = cy_;
     Eigen::Matrix3d inner;
     inner << fx, 0, cx, 0, fy, cy, 0, 0, 1;
-    Eigen::Vector4d distor;
-    distor << k1_, k2_, p1_, p2_;
     Eigen::Vector3d p_l(vpnp_point.x, vpnp_point.y, vpnp_point.z);
     Eigen::Vector3d p_c = rotation_matrix * p_l + transation;
     Eigen::Vector3d p_2 = inner * p_c;
@@ -1478,37 +1483,32 @@ void Calibration::calcResidual(const Vector6d &extrinsic_params,
     float vo = p_2[1] / p_2[2];
     float xo = (uo - cx) / fx;
     float yo = (vo - cy) / fy;
-    float r2 = xo * xo + yo * yo;
-    float r4 = r2 * r2;
-    float distortion = 1.0 + distor[0] * r2 + distor[1] * r4;
-    float xd = xo * distortion + (distor[2] * xo * yo + distor[2] * xo * yo) +
-               distor[3] * (r2 + xo * xo + xo * xo);
-    float yd = yo * distortion + distor[2] * xo * yo + distor[2] * xo * yo +
-               distor[2] * (r2 + yo * yo + yo * yo);
+
+    const float &r2 = xo * xo + yo * yo;
+    const float &Ri = sqrt(r2);
+    const float &theta = atan(Ri);
+    const float &t2 = theta * theta;
+    const float &t3 = theta * t2;
+    float rd = theta + k1_ * t3 + k2_ * t2 * t3 + k3_ * t2 * t2 * t3 +
+               k4_ * t3 * t3 * t3;
+    rd = rd / Ri;
+
+    float xd = xo * rd;
+    float yd = yo * rd;
+
+    if (p2_ != 0.0f) {
+      const float &p12 = p1_ / p2_;
+      const float &rdvxy = xd * yd * p2_ * 2.0f;
+      const float &rdvx2 = xd * xd * p2_;
+      const float &rdvy2 = yd * yd * p2_;
+      xd = xd + p12 * rdvxy + rdvy2 + 3.f * rdvx2;
+      yd = yd + rdvxy + p12 * (rdvx2 + 3.f * rdvy2);
+    }
+
     float ud = fx * xd + cx;
     float vd = fy * yd + cy;
     residual[0] = ud - vpnp_point.u;
     residual[1] = vd - vpnp_point.v;
-    // if (vpnp_point.direction(0) == 0 && vpnp_point.direction(1) == 0) {
-    //   residual[0] = ud - vpnp_point.u;
-    //   residual[1] = vd - vpnp_point.v;
-    // } else {
-    //   residual[0] = ud - vpnp_point.u;
-    //   residual[1] = vd - vpnp_point.v;
-    //   Eigen::Matrix2d I = Eigen::Matrix2d::Identity();
-    //   Eigen::Vector2d n = vpnp_point.direction;
-    //   Eigen::Matrix2d V = n * n.transpose();
-    //   Eigen::Matrix2d R;
-    //   R << residual[0], 0, 0, residual[1];
-    //   V = I - V;
-    //   R = V * R * V.transpose();
-    //   residual[0] = R(0, 0);
-    //   residual[1] = R(1, 1);
-    // }
-    // Eigen::Vector2d v(-vpnp_point.direction(1), vpnp_point.direction(0));
-    // if (v(0) < 0) {
-    //   v = -v;
-    // }
     float cost = sqrt(residual[0] * residual[0] + residual[1] * residual[1]);
     residual_list.push_back(cost);
   }

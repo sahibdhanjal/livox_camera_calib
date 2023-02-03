@@ -217,9 +217,10 @@ int main(int argc, char **argv) {
     single_calib.cy_ = camera_matrix[5];
     single_calib.k1_ = dist_coeffs[0];
     single_calib.k2_ = dist_coeffs[1];
-    single_calib.p1_ = dist_coeffs[2];
-    single_calib.p2_ = dist_coeffs[3];
-    single_calib.k3_ = dist_coeffs[4];
+    single_calib.k3_ = dist_coeffs[2];
+    single_calib.k4_ = dist_coeffs[3];
+    single_calib.p1_ = dist_coeffs[4];
+    single_calib.p2_ = dist_coeffs[5];
     calibs.push_back(single_calib);
   }
 

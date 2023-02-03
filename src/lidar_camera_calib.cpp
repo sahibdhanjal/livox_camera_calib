@@ -25,7 +25,7 @@ string calib_config_file;
 // instrins matrix
 Eigen::Matrix3d inner;
 // Distortion coefficient
-Eigen::Vector4d distor;
+Eigen::Vector6d distor;
 Eigen::Vector4d quaternion;
 Eigen::Vector3d transation;
 
@@ -36,7 +36,7 @@ public:
   template <typename T>
   bool operator()(const T *_q, const T *_t, T *residuals) const {
     Eigen::Matrix<T, 3, 3> innerT = inner.cast<T>();
-    Eigen::Matrix<T, 4, 1> distorT = distor.cast<T>();
+    Eigen::Matrix<T, 6, 1> distorT = distor.cast<T>();
     Eigen::Quaternion<T> q_incre{_q[3], _q[0], _q[1], _q[2]};
     Eigen::Matrix<T, 3, 1> t_incre{_t[0], _t[1], _t[2]};
     Eigen::Matrix<T, 3, 1> p_l(T(pd.x), T(pd.y), T(pd.z));
@@ -50,13 +50,28 @@ public:
     const T &cy = innerT.coeffRef(1, 2);
     T xo = (uo - cx) / fx;
     T yo = (vo - cy) / fy;
-    T r2 = xo * xo + yo * yo;
-    T r4 = r2 * r2;
-    T distortion = 1.0 + distorT[0] * r2 + distorT[1] * r4;
-    T xd = xo * distortion + (distorT[2] * xo * yo + distorT[2] * xo * yo) +
-           distorT[3] * (r2 + xo * xo + xo * xo);
-    T yd = yo * distortion + distorT[3] * xo * yo + distorT[3] * xo * yo +
-           distorT[2] * (r2 + yo * yo + yo * yo);
+
+    const T &r2 = xo * xo + yo * yo;
+    const T &Ri = sqrt(r2);
+    const T &theta = atan(Ri);
+    const T &t2 = theta * theta;
+    const T &t3 = t2 * theta;
+
+    T rd = theta + distorT[0] * t3 + distorT[1] * t2 * t3 +
+           distorT[2] * t2 * t2 * t3 + distorT[3] * t3 * t3 * t3;
+    rd = rd / Ri;
+    T xd = xo * rd;
+    T yd = yo * rd;
+
+    if (distorT[5] != T(0.)) {
+      const T &p12 = distorT[4] / distorT[5];
+      const T &rdvxy = xd * yd * distorT[5] * T(2.);
+      const T &rdvx2 = xd * xd * distorT[5];
+      const T &rdvy2 = yd * yd * distorT[5];
+      xd = xd + p12 * rdvxy + rdvy2 + T(3.) * rdvx2;
+      yd = yd + rdvxy + p12 * (rdvx2 + T(3.) * rdvy2);
+    }
+
     T ud = fx * xd + cx;
     T vd = fy * yd + cy;
     residuals[0] = ud - T(pd.u);
@@ -79,7 +94,7 @@ public:
   template <typename T>
   bool operator()(const T *_q, const T *_t, T *residuals) const {
     Eigen::Matrix<T, 3, 3> innerT = inner.cast<T>();
-    Eigen::Matrix<T, 4, 1> distorT = distor.cast<T>();
+    Eigen::Matrix<T, 6, 1> distorT = distor.cast<T>();
     Eigen::Quaternion<T> q_incre{_q[3], _q[0], _q[1], _q[2]};
     Eigen::Matrix<T, 3, 1> t_incre{_t[0], _t[1], _t[2]};
     Eigen::Matrix<T, 3, 1> p_l(T(pd.x), T(pd.y), T(pd.z));
@@ -93,13 +108,28 @@ public:
     const T &cy = innerT.coeffRef(1, 2);
     T xo = (uo - cx) / fx;
     T yo = (vo - cy) / fy;
-    T r2 = xo * xo + yo * yo;
-    T r4 = r2 * r2;
-    T distortion = 1.0 + distorT[0] * r2 + distorT[1] * r4;
-    T xd = xo * distortion + (distorT[2] * xo * yo + distorT[2] * xo * yo) +
-           distorT[3] * (r2 + xo * xo + xo * xo);
-    T yd = yo * distortion + distorT[3] * xo * yo + distorT[3] * xo * yo +
-           distorT[2] * (r2 + yo * yo + yo * yo);
+
+    const T &r2 = xo * xo + yo * yo;
+    const T &Ri = sqrt(r2);
+    const T &theta = atan(Ri);
+    const T &t2 = theta * theta;
+    const T &t3 = t2 * theta;
+
+    T rd = theta + distorT[0] * t3 + distorT[1] * t2 * t3 +
+           distorT[2] * t2 * t2 * t3 + distorT[3] * t3 * t3 * t3;
+    rd = rd / Ri;
+    T xd = xo * rd;
+    T yd = yo * rd;
+
+    if (distorT[5] != T(0.)) {
+      const T &p12 = distorT[4] / distorT[5];
+      const T &rdvxy = xd * yd * distorT[5] * T(2.);
+      const T &rdvx2 = xd * xd * distorT[5];
+      const T &rdvy2 = yd * yd * distorT[5];
+      xd = xd + p12 * rdvxy + rdvy2 + T(3.) * rdvx2;
+      yd = yd + rdvxy + p12 * (rdvx2 + T(3.) * rdvy2);
+    }
+
     T ud = fx * xd + cx;
     T vd = fy * yd + cy;
     if (T(pd.direction(0)) == T(0.0) && T(pd.direction(1)) == T(0.0)) {
@@ -210,9 +240,10 @@ int main(int argc, char **argv) {
   calibra.cy_ = camera_matrix[5];
   calibra.k1_ = dist_coeffs[0];
   calibra.k2_ = dist_coeffs[1];
-  calibra.p1_ = dist_coeffs[2];
-  calibra.p2_ = dist_coeffs[3];
-  calibra.k3_ = dist_coeffs[4];
+  calibra.k3_ = dist_coeffs[2];
+  calibra.k4_ = dist_coeffs[3];
+  calibra.p1_ = dist_coeffs[4];
+  calibra.p2_ = dist_coeffs[5];
   Eigen::Vector3d init_euler_angle =
       calibra.init_rotation_matrix_.eulerAngles(2, 1, 0);
   Eigen::Vector3d init_transation = calibra.init_translation_vector_;
@@ -229,7 +260,9 @@ int main(int argc, char **argv) {
   Eigen::Vector3d T;
   inner << calibra.fx_, 0.0, calibra.cx_, 0.0, calibra.fy_, calibra.cy_, 0.0,
       0.0, 1.0;
-  distor << calibra.k1_, calibra.k2_, calibra.p1_, calibra.p2_;
+  distor << calibra.k1_, calibra.k2_, calibra.k3_, calibra.k4_, calibra.p1_,
+      calibra.p2_;
+
   R = calibra.init_rotation_matrix_;
   T = calibra.init_translation_vector_;
   std::cout << "Initial rotation matrix:" << std::endl
@@ -353,14 +386,6 @@ int main(int argc, char **argv) {
       Eigen::Quaterniond opt_q(R);
       std::cout << "q_dis:" << RAD2DEG(opt_q.angularDistance(q))
                 << " ,t_dis:" << (T - ori_t).norm() << std::endl;
-      // getchar();
-      // if (opt_q.angularDistance(q) < DEG2RAD(0.01) &&
-      //     (T - ori_t).norm() < 0.005) {
-      //   opt_flag = false;
-      // }
-      // if (!opt_flag) {
-      //   break;
-      // }
     }
     if (!opt_flag) {
       break;

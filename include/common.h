@@ -48,13 +48,13 @@ public:
 namespace std {
 template <> struct hash<VOXEL_LOC> {
   size_t operator()(const VOXEL_LOC &s) const {
-    using std::size_t;
     using std::hash;
+    using std::size_t;
     return ((hash<int64_t>()(s.x) ^ (hash<int64_t>()(s.y) << 1)) >> 1) ^
            (hash<int64_t>()(s.z) << 1);
   }
 };
-}
+} // namespace std
 
 struct M_POINT {
   float xyz[3];
@@ -177,6 +177,74 @@ void rgb2grey(const cv::Mat &rgb_image, cv::Mat &grey_img) {
       grey_img.at<uchar>(y, x) = 1.0 / 3.0 * rgb_image.at<cv::Vec3b>(y, x)[0] +
                                  1.0 / 3.0 * rgb_image.at<cv::Vec3b>(y, x)[1] +
                                  1.0 / 3.0 * rgb_image.at<cv::Vec3b>(y, x)[2];
+    }
+  }
+}
+
+template <typename T>
+void projectPoints(const std::vector < cv::Point3_<T> & points_3d,
+                   const cv::Mat &rvec, const cv::Mat &tvec,
+                   const cv::Mat &cam_matrix, const cv::Mat &dist_coeffs,
+                   std::vector<cv::Point2_<T>> &points_2d) {
+  size_t num_points = points_3d.size();
+  const double &fx = cam_matrix.at<double>(0, 0),
+               &fy = cam_matrix.at<double>(1, 1),
+               &cx = cam_matrix.at<double>(0, 2),
+               &cy = cam_matrix.at<double>(1, 2);
+  const double &k1 = cam_matrix.at<double>(0, 0),
+               &k2 = cam_matrix.at<double>(0, 1),
+               &k3 = cam_matrix.at<double>(0, 2),
+               &k4 = cam_matrix.at<double>(0, 3),
+               &p1 = cam_matrix.at<double>(0, 4),
+               &p2 = cam_matrix.at<double>(0, 5);
+
+  cv::Mat R;
+  cv::Rodrigues(rvec, R);
+
+  points_2d.resize(num_points);
+
+#pragma omp parallel
+  {
+    for (size_t i = 0; i < num_points; i++) {
+      const auto &Xi = points_3d[i].x, &Yi = points_3d[i].y,
+                 Zi = points_3d[i].z;
+      const auto &xi = R.at<double>(0, 0) * Xi + R.at<double>(0, 1) * Yi +
+                       R.at<double>(0, 2) * Zi + tvec.at<double>(0, 0);
+      const auto &yi = R.at<double>(1, 0) * Xi + R.at<double>(1, 1) * Yi +
+                       R.at<double>(1, 2) * Zi + tvec.at<double>(1, 0);
+      const auto &zi = R.at<double>(2, 0) * Xi + R.at<double>(2, 1) * Yi +
+                       R.at<double>(2, 2) * Zi + tvec.at<double>(2, 0);
+
+      const auto &ui = xi / zi, &vi = yi / zi;
+
+      const auto &xo = (ui - cx) / fx;
+      const auto &yo = (vi - cy) / fy;
+
+      // undistortion residual
+      const auto &r2 = xo * xo + yo * yo;
+      const auto &Ri = sqrt(r2);
+      const auto &theta = atan(Ri);
+      const auto &t2 = theta * theta;
+      const auto &t3 = theta * t2;
+      double rd = theta + k1 * t3 + k2 * t2 * t3 + k3 * t2 * t2 * t3 +
+                  k4 * t3 * t3 * t3;
+      rd = rd / Ri;
+
+      double xd = xo * rd;
+      double yd = yo * rd;
+
+      if (p2 != 0.0f) {
+        const double &p12 = p1 / p2;
+        const double &rdvxy = xd * yd * p2 * 2.0f;
+        const double &rdvx2 = xd * xd * p2;
+        const double &rdvy2 = yd * yd * p2;
+        xd = xd + p12 * rdvxy + rdvy2 + 3.f * rdvx2;
+        yd = yd + rdvxy + p12 * (rdvx2 + 3.f * rdvy2);
+      }
+
+      const float &ud = fx * xd + cx;
+      const float &vd = fy * yd + cy;
+      points_2d[i] = cv::Point2f(ud, vd);
     }
   }
 }
