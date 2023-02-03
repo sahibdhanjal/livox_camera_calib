@@ -25,7 +25,7 @@ string calib_config_file;
 // instrins matrix
 Eigen::Matrix3d inner;
 // Distortion coefficient
-Eigen::Vector6d distor;
+Eigen::Matrix<double, 6, 1> distor;
 Eigen::Vector4d quaternion;
 Eigen::Vector3d transation;
 

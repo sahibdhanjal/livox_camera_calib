@@ -320,8 +320,7 @@ void Calibration::colorCloud(
   cv::Mat t_vec = (cv::Mat_<double>(3, 1) << extrinsic_params[3],
                    extrinsic_params[4], extrinsic_params[5]);
   std::vector<cv::Point2f> pts_2d;
-  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                       pts_2d);
+  projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,pts_2d);
 
   int image_rows = rgb_img.rows;
   int image_cols = rgb_img.cols;
@@ -437,8 +436,7 @@ void Calibration::projection(
                    extrinsic_params[4], extrinsic_params[5]);
   // project 3d-points into image view
   std::vector<cv::Point2f> pts_2d;
-  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                       pts_2d);
+  projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff, pts_2d);
   cv::Mat image_project = cv::Mat::zeros(height_, width_, CV_16UC1);
   cv::Mat rgb_image_project = cv::Mat::zeros(height_, width_, CV_8UC3);
   for (size_t i = 0; i < pts_2d.size(); ++i) {
@@ -1058,8 +1056,7 @@ void Calibration::buildVPnp(
   // std::cout << "r_vec:" << r_vec << std::endl;
   // std::cout << "t_vec:" << t_vec << std::endl;
   // std::cout << "pts 3d size:" << pts_3d.size() << std::endl;
-  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                       pts_2d);
+  projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff, pts_2d);
   pcl::PointCloud<pcl::PointXYZ>::Ptr line_edge_cloud_2d(
       new pcl::PointCloud<pcl::PointXYZ>);
   std::vector<int> line_edge_cloud_2d_number;
@@ -1235,8 +1232,7 @@ void Calibration::buildPnp(
                    extrinsic_params[4], extrinsic_params[5]);
   // project 3d-points into image view
   std::vector<cv::Point2f> pts_2d;
-  projectPoints<float>(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,
-                       pts_2d);
+  projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff, pts_2d);
   pcl::PointCloud<pcl::PointXYZ>::Ptr line_edge_cloud_2d(
       new pcl::PointCloud<pcl::PointXYZ>);
   for (size_t i = 0; i < pts_2d.size(); i++) {

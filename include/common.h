@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <string>
 #include <unordered_map>
+#include <opencv2/opencv.hpp>
+#include <vector>
+
 struct PnPData {
   double x, y, z, u, v;
 };
@@ -181,11 +184,10 @@ void rgb2grey(const cv::Mat &rgb_image, cv::Mat &grey_img) {
   }
 }
 
-template <typename T>
-void projectPoints(const std::vector < cv::Point3_<T> & points_3d,
+void projectPoints(const std::vector <cv::Point3f> & points_3d,
                    const cv::Mat &rvec, const cv::Mat &tvec,
                    const cv::Mat &cam_matrix, const cv::Mat &dist_coeffs,
-                   std::vector<cv::Point2_<T>> &points_2d) {
+                   std::vector<cv::Point2f> &points_2d) {
   size_t num_points = points_3d.size();
   const double &fx = cam_matrix.at<double>(0, 0),
                &fy = cam_matrix.at<double>(1, 1),
