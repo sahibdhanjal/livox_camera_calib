@@ -4,21 +4,22 @@
 PointCloudTopic: "/livox/lidar"
 ImageTopic: "/camera/color/image_raw"
 
+# lcam_T_dcam
 ExtrinsicMat: !!opencv-matrix
   rows: 4
   cols: 4
   dt: d
-  data: [0.0,   -1.0,   0.0,    0.0,
-         0.0,  0.0,  -1.0,    0.0,
-         1.0,   0.0,    0.0,    0.0,
-         0.0,   0.0,    0.0,    1.0]
+  data: [ 0.76975117, -0.18020627,  0.61237969,  0.06378889,
+          0.2801665 ,  0.95736355, -0.07043916, -0.00138532,
+         -0.57357646,  0.22578896,  0.78741951, -0.042494  ,
+          0.        ,  0.        ,  0.        ,  1.        ]
 
 # Params for Canny Edge Extraction
 Canny.gray_threshold: 10
 Canny.len_threshold: 200
 
 # Params for Voxel Cutting & Plane Fitting & Edge Extraction
-Voxel.size: 0.025
+Voxel.size: 0.5
 Voxel.down_sample_size: 0.02
 Plane.min_points_size: 30
 Plane.normal_theta_min: 45
