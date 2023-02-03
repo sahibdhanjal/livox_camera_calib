@@ -193,12 +193,12 @@ void projectPoints(const std::vector <cv::Point3f> & points_3d,
                &fy = cam_matrix.at<double>(1, 1),
                &cx = cam_matrix.at<double>(0, 2),
                &cy = cam_matrix.at<double>(1, 2);
-  const double &k1 = cam_matrix.at<double>(0, 0),
-               &k2 = cam_matrix.at<double>(0, 1),
-               &k3 = cam_matrix.at<double>(0, 2),
-               &k4 = cam_matrix.at<double>(0, 3),
-               &p1 = cam_matrix.at<double>(0, 4),
-               &p2 = cam_matrix.at<double>(0, 5);
+  const double &k1 = dist_coeffs.at<double>(0, 0),
+               &k2 = dist_coeffs.at<double>(0, 1),
+               &k3 = dist_coeffs.at<double>(0, 2),
+               &k4 = dist_coeffs.at<double>(0, 3),
+               &p1 = dist_coeffs.at<double>(0, 4),
+               &p2 = dist_coeffs.at<double>(0, 5);
 
   cv::Mat R;
   cv::Rodrigues(rvec, R);
