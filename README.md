@@ -17,6 +17,39 @@ Related paper available on arxiv:
 ## Related video
 Related video: https://youtu.be/e6Vkkasc4JI
 
+## Run Using Docker
+### Build Docker Image
+ 1. Make sure you have [docker](https://docs.docker.com/engine/install/ubuntu/) installed and all the necessary permissions added.
+ 2. Build the docker image using `docker build -t ros .`
+
+### Run Container with appropriate permission
+ 1. Give xhost [access](https://stackoverflow.com/a/73536577) to all network solutions using `xhost + local:`
+ 2. Run container using the following command:
+ ```
+ docker run -it -e DISPLAY=$DISPLAY -v $HOME/.Xauthority:/root/.Xauthority --net=host --name=livox ros:latest
+ ```
+ 3. If you have a GPU add the following before `--name`: 
+ ```
+ --gpus 'all,"capabilities=compute,utility,display"' --privileged
+ ```
+ 4. Mount the code and data directory using 
+ ```
+ -v <location to code>:/home/catkin_ws/src/ -v <location to data>:/home/data/
+ ```
+
+*Full Example Command*:
+ ```
+ docker run -it -e DISPLAY=$DISPLAY -v $HOME/.Xauthority:/root/.Xauthority -v $HOME/code/catkin_ws/src/:/home/catkin_ws/src -v $HOME/code/catkin_ws/data/:/home/data/ --net=host --name=test livox:latest
+ ```
+
+ 5. Once inside the container, build the catkin package and run the experiment using:
+ ```
+ cd /home/catkin_ws/ && catkin build && source devel/setup.bash
+ roslaunch livox_camera_calib calib.launch
+ ```
+ 6. Once done with the experiments, remove xhost access using `xhost - local:`
+
+
 ## 1. Prerequisites
 ### 1.1 **Ubuntu** and **ROS**
 Ubuntu 64-bit 16.04 or 18.04.

@@ -23,21 +23,22 @@ libboost-dev \
 libyaml-cpp-dev \
 libpcl-dev \
 libsuitesparse-dev \
-liblz4-tool
+liblz4-tool \
+mesa-utils \
+ros-melodic-cv-bridge \
+ros-melodic-pcl-conversions
 
 RUN pip install -U catkin_tools
 
-RUN mkdir -p /home/deps/ && \
-    cd /home/deps/ && \
-    wget http://ceres-solver.org/ceres-solver-2.0.0.tar.gz && \
-    tar zxf ceres-solver-2.0.0.tar.gz && \
+RUN mkdir -p /home/deps/ && cd /home/deps/ && \
+    wget http://ceres-solver.org/ceres-solver-2.1.0.tar.gz && \
+    tar zxf ceres-solver-2.1.0.tar.gz && \
     mkdir ceres-bin && cd ceres-bin && \
-    cmake ../ceres-solver-2.0.0
+    cmake -DCMAKE_BUILD_TYPE=Release ../ceres-solver-2.1.0 && \
+    make -j8 && make install
 
 # https://github.com/ethz-asl/lidar_align/issues/16#issuecomment-504348488
 RUN mv /usr/include/flann/ext/lz4.h /usr/include/flann/ext/lz4.h.bak && \
     mv /usr/include/flann/ext/lz4hc.h /usr/include/flann/ext/lz4.h.bak && \
     ln -s /usr/include/lz4.h /usr/include/flann/ext/lz4.h && \
     ln -s /usr/include/lz4hc.h /usr/include/flann/ext/lz4hc.h
-
-RUN cd /home/deps/ceres-bin/ && make -j8 && make install
