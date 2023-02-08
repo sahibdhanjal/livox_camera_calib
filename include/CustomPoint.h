@@ -4,14 +4,14 @@
 #ifndef LIVOX_ROS_DRIVER_MESSAGE_CUSTOMPOINT_H
 #define LIVOX_ROS_DRIVER_MESSAGE_CUSTOMPOINT_H
 
-#include <map>
-#include <string>
-#include <vector>
-
 #include <ros/builtin_message_traits.h>
 #include <ros/message_operations.h>
 #include <ros/serialization.h>
 #include <ros/types.h>
+
+#include <map>
+#include <string>
+#include <vector>
 
 namespace livox_ros_driver {
   template <class ContainerAllocator>

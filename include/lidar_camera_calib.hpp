@@ -21,6 +21,7 @@
 #include <std_msgs/Header.h>
 #include <stdio.h>
 #include <time.h>
+
 #include <Eigen/Core>
 #include <fstream>
 #include <iostream>
@@ -28,6 +29,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+
 #include "CustomMsg.h"
 #include "common.h"
 
@@ -813,8 +815,6 @@ void Calibration::LiDAREdgeExtraction(
   if ( DEBUG ) {
 	std::cout << "Number of Voxels: " << voxel_map.size() << " | # Voxel Cloud Size > 50: " << ctr
 			  << " | # Voxel Plane List >= 2: " << num_planes_with_plane_list_gt2 << std::endl;
-	pcl::io::savePCDFileASCII( "/home/data/output/lidar_line_cloud_3d.pcd", *lidar_line_cloud_3d );
-	std::cout << "Saving Lidar Line Cloud.." << std::endl;
   }
 }
 

@@ -4,16 +4,16 @@
 #ifndef LIVOX_ROS_DRIVER_MESSAGE_CUSTOMMSG_H
 #define LIVOX_ROS_DRIVER_MESSAGE_CUSTOMMSG_H
 
-#include <map>
-#include <string>
-#include <vector>
-
 #include <ros/builtin_message_traits.h>
 #include <ros/message_operations.h>
 #include <ros/serialization.h>
 #include <ros/types.h>
-
 #include <std_msgs/Header.h>
+
+#include <map>
+#include <string>
+#include <vector>
+
 #include "CustomPoint.h"
 
 namespace livox_ros_driver {
