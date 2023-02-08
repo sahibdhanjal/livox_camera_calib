@@ -1,7 +1,7 @@
 # data
 common:
-    image_file: "/home/data/left_wcam/distorted/000001662130.png"
-    pcd_file: "/home/data/dcam/pointcloud/000001662130.pcd"
+    image_file: "/home/data/left_wcam/distorted/000004128797.png"
+    pcd_file: "/home/data/dcam/pointcloud/000004128797.pcd"
     result_file: "/home/data/extrinsic_result.txt"
 
 # lcam intrinsics
