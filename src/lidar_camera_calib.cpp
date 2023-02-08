@@ -360,8 +360,7 @@ int main( int argc, char** argv ) {
 	  std::cout << summary.BriefReport() << std::endl;
 	  Eigen::Matrix3d rot = m_q.toRotationMatrix();
 	  euler_angle = rot.eulerAngles( 2, 1, 0 );
-	  // std::cout << rot << std::endl;
-	  // std::cout << m_t << std::endl;
+
 	  calib_params[0] = euler_angle[0];
 	  calib_params[1] = euler_angle[1];
 	  calib_params[2] = euler_angle[2];
@@ -381,7 +380,6 @@ int main( int argc, char** argv ) {
   }
 
   ros::Rate loop( 0.5 );
-  // roughCalib(calibra, calib_params, DEG2RAD(0.01), 20);
 
   R = Eigen::AngleAxisd( calib_params[0], Eigen::Vector3d::UnitZ() ) *
 	  Eigen::AngleAxisd( calib_params[1], Eigen::Vector3d::UnitY() ) *
@@ -404,10 +402,7 @@ int main( int argc, char** argv ) {
   Eigen::Matrix3d adjust_rotation;
   adjust_rotation = init_rotation.inverse() * R;
   Eigen::Vector3d adjust_euler = adjust_rotation.eulerAngles( 2, 1, 0 );
-  // outfile << RAD2DEG(adjust_euler[0]) << "," << RAD2DEG(adjust_euler[1]) <<
-  // ","
-  //         << RAD2DEG(adjust_euler[2]) << "," << 0 << "," << 0 << "," << 0
-  //         << std::endl;
+
   while ( ros::ok() ) {
 	sensor_msgs::PointCloud2 pub_cloud;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_cloud( new pcl::PointCloud<pcl::PointXYZRGB> );
@@ -419,7 +414,6 @@ int main( int argc, char** argv ) {
 	calibra.image_pub_.publish( img_msg );
 	std::cout << "push enter to publish again" << std::endl;
 	getchar();
-	/* code */
   }
   return 0;
 }
