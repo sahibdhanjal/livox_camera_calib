@@ -175,7 +175,7 @@ void roughCalib(Calibration &calibra, Vector6d &calib_params,
       rot = Eigen::AngleAxisd(calib_params[0], Eigen::Vector3d::UnitZ()) *
             Eigen::AngleAxisd(calib_params[1], Eigen::Vector3d::UnitY()) *
             Eigen::AngleAxisd(calib_params[2], Eigen::Vector3d::UnitX());
-      // std::cout << "init rot" << rot << std::endl;
+
       float min_cost = 1000;
       for (int iter = 0; iter < max_iter; iter++) {
         Eigen::Vector3d adjust_euler = fix_adjust_euler;
@@ -187,10 +187,8 @@ void roughCalib(Calibration &calibra, Vector6d &calib_params,
             Eigen::AngleAxisd(adjust_euler[1], Eigen::Vector3d::UnitY()) *
             Eigen::AngleAxisd(adjust_euler[2], Eigen::Vector3d::UnitX());
         Eigen::Matrix3d test_rot = rot * adjust_rotation_matrix;
-        // std::cout << "adjust_rotation_matrix " << adjust_rotation_matrix
-        //           << std::endl;
         Eigen::Vector3d test_euler = test_rot.eulerAngles(2, 1, 0);
-        // std::cout << "test euler: " << test_euler << std::endl;
+
         Vector6d test_params;
         test_params << test_euler[0], test_euler[1], test_euler[2],
             calib_params[3], calib_params[4], calib_params[5];
@@ -209,9 +207,12 @@ void roughCalib(Calibration &calibra, Vector6d &calib_params,
           calibra.buildVPnp(calib_params, match_dis, true,
                             calibra.rgb_egde_cloud_, calibra.plane_line_cloud_,
                             pnp_list);
-          cv::Mat projection_img = calibra.getProjectionImg(calib_params);
-          cv::imshow("Rough Optimization", projection_img);
-          cv::waitKey(50);
+          if (DEBUG) {
+            cv::Mat projection_img = calibra.getProjectionImg(calib_params);
+            cv::imshow("Rough Optimization", projection_img);
+            cv::waitKey(50);
+            cv::imwrite("/home/data/output/rough_optimization.png", projection_img);
+          }
         }
       }
     }
@@ -226,7 +227,6 @@ int main(int argc, char **argv) {
   nh.param<string>("common/image_file", image_file, "");
   nh.param<string>("common/pcd_file", pcd_file, "");
   nh.param<string>("common/result_file", result_file, "");
-  std::cout << "pcd_file path:" << pcd_file << std::endl;
   nh.param<vector<double>>("camera/camera_matrix", camera_matrix,
                            vector<double>());
   nh.param<vector<double>>("camera/dist_coeffs", dist_coeffs, vector<double>());
@@ -269,6 +269,7 @@ int main(int argc, char **argv) {
             << calibra.init_rotation_matrix_ << std::endl;
   std::cout << "Initial translation:"
             << calibra.init_translation_vector_.transpose() << std::endl;
+
   bool use_vpnp = true;
   Eigen::Vector3d euler = R.eulerAngles(2, 1, 0);
   calib_params[0] = euler[0];
@@ -285,17 +286,24 @@ int main(int argc, char **argv) {
   pcl::toROSMsg(*rgb_cloud, pub_cloud);
   pub_cloud.header.frame_id = "livox";
   calibra.init_rgb_cloud_pub_.publish(pub_cloud);
-  cv::Mat init_img = calibra.getProjectionImg(calib_params);
-  cv::imshow("Initial extrinsic", init_img);
-  cv::imwrite("/home/ycj/data/calib/init.png", init_img);
-  cv::waitKey(1000);
+  if(DEBUG) {
+    cv::Mat init_img = calibra.getProjectionImg(calib_params);
+    cv::imshow("Initial extrinsic", init_img);
+    cv::waitKey(50);
+    cv::imwrite("/home/data/output/initial_extrinsic.png", init_img);
+  }
 
   if (use_rough_calib) {
     roughCalib(calibra, calib_params, DEG2RAD(0.1), 50);
   }
-  cv::Mat test_img = calibra.getProjectionImg(calib_params);
-  cv::imshow("After rough extrinsic", test_img);
-  cv::waitKey(1000);
+
+  if(DEBUG) {
+    cv::Mat test_img = calibra.getProjectionImg(calib_params);
+    cv::imshow("After rough extrinsic", test_img);
+    cv::waitKey(50);
+    cv::imwrite("/home/data/output/after_rough_extrinsic.png", test_img);
+  }
+
   int iter = 0;
   // Maximum match distance threshold: 15 pixels
   // If initial extrinsic lead to error over 15 pixels, the algorithm will not
@@ -319,9 +327,13 @@ int main(int argc, char **argv) {
       std::cout << "Iteration:" << iter++ << " Dis:" << dis_threshold
                 << " pnp size:" << vpnp_list.size() << std::endl;
 
-      cv::Mat projection_img = calibra.getProjectionImg(calib_params);
-      cv::imshow("Optimization", projection_img);
-      cv::waitKey(100);
+      if(DEBUG) {
+        cv::Mat projection_img = calibra.getProjectionImg(calib_params);
+        cv::imshow("Optimization", projection_img);
+        cv::waitKey(50);
+        cv::imwrite("/home/data/output/optimization.png", projection_img);
+      }
+
       Eigen::Vector3d euler_angle(calib_params[0], calib_params[1],
                                   calib_params[2]);
       Eigen::Matrix3d opt_init_R;
@@ -404,10 +416,14 @@ int main(int argc, char **argv) {
             << std::endl;
   }
   outfile << 0 << "," << 0 << "," << 0 << "," << 1 << std::endl;
-  cv::Mat opt_img = calibra.getProjectionImg(calib_params);
-  cv::imshow("Optimization result", opt_img);
-  cv::imwrite("/home/ycj/data/calib/opt.png", opt_img);
-  cv::waitKey(1000);
+
+  if(DEBUG) {
+    cv::Mat opt_img = calibra.getProjectionImg(calib_params);
+    cv::imshow("Optimization result", opt_img);
+    cv::waitKey(50);
+    cv::imwrite("/home/data/output/optimization_result.png", opt_img);
+  }
+
   Eigen::Matrix3d init_rotation;
   init_rotation << 0, -1.0, 0, 0, 0, -1.0, 1, 0, 0;
   Eigen::Matrix3d adjust_rotation;

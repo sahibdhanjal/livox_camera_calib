@@ -31,21 +31,17 @@
 #include <time.h>
 #include <unordered_map>
 
+#define DEBUG 1
 #define calib
 #define online
 class Calibration {
 public:
   ros::NodeHandle nh_;
-  ros::Publisher rgb_cloud_pub_ =
-      nh_.advertise<sensor_msgs::PointCloud2>("rgb_cloud", 1);
-  ros::Publisher init_rgb_cloud_pub_ =
-      nh_.advertise<sensor_msgs::PointCloud2>("init_rgb_cloud", 1);
-  ros::Publisher planner_cloud_pub_ =
-      nh_.advertise<sensor_msgs::PointCloud2>("planner_cloud", 1);
-  ros::Publisher line_cloud_pub_ =
-      nh_.advertise<sensor_msgs::PointCloud2>("line_cloud", 1);
-  ros::Publisher image_pub_ =
-      nh_.advertise<sensor_msgs::Image>("camera_image", 1);
+  ros::Publisher rgb_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("rgb_cloud", 1);
+  ros::Publisher init_rgb_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("init_rgb_cloud", 1);
+  ros::Publisher planner_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("planner_cloud", 1);
+  ros::Publisher line_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("line_cloud", 1);
+  ros::Publisher image_pub_ = nh_.advertise<sensor_msgs::Image>("camera_image", 1);
   enum ProjectionType { DEPTH, INTENSITY, BOTH };
   enum Direction { UP, DOWN, LEFT, RIGHT };
   std::string lidar_topic_name_ = "";
@@ -60,65 +56,60 @@ public:
   int line_number_ = 0;
   int color_intensity_threshold_ = 5;
   Eigen::Vector3d adjust_euler_angle_;
-  Calibration(const std::string &image_file, const std::string &pcd_file,
-              const std::string &calib_config_file);
-  void loadImgAndPointcloud(const std::string bag_path,
-                            pcl::PointCloud<pcl::PointXYZI>::Ptr &origin_cloud,
-                            cv::Mat &rgb_img);
+
+  Calibration(const std::string &image_file, const std::string &pcd_file, const std::string &calib_config_file);
+  void loadImgAndPointcloud(const std::string bag_path, pcl::PointCloud<pcl::PointXYZI>::Ptr &origin_cloud, cv::Mat &rgb_img);
   bool loadCameraConfig(const std::string &camera_file);
   bool loadCalibConfig(const std::string &config_file);
   bool loadConfig(const std::string &configFile);
   bool checkFov(const cv::Point2d &p);
+
   void colorCloud(const Vector6d &extrinsic_params, const int density,
                   const cv::Mat &rgb_img,
                   const pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_cloud,
                   pcl::PointCloud<pcl::PointXYZRGB>::Ptr &color_cloud);
+
   void edgeDetector(const int &canny_threshold, const int &edge_threshold,
                     const cv::Mat &src_img, cv::Mat &edge_img,
                     pcl::PointCloud<pcl::PointXYZ>::Ptr &edge_cloud);
+
   void projection(const Vector6d &extrinsic_params,
                   const pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_cloud,
                   const ProjectionType projection_type, const bool is_fill_img,
                   cv::Mat &projection_img);
+
   void calcLine(const std::vector<Plane> &plane_list, const double voxel_size,
                 const Eigen::Vector3d origin,
                 std::vector<pcl::PointCloud<pcl::PointXYZI>> &line_cloud_list);
+
   cv::Mat fillImg(const cv::Mat &input_img, const Direction first_direct,
                   const Direction second_direct);
+
   void buildPnp(const Vector6d &extrinsic_params, const int dis_threshold,
                 const bool show_residual,
                 const pcl::PointCloud<pcl::PointXYZ>::Ptr &cam_edge_cloud_2d,
                 const pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_line_cloud_3d,
                 std::vector<PnPData> &pnp_list);
-  void
-  buildVPnp(const Vector6d &extrinsic_params, const int dis_threshold,
-            const bool show_residual,
-            const pcl::PointCloud<pcl::PointXYZ>::Ptr &cam_edge_cloud_2d,
-            const pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_line_cloud_3d,
-            std::vector<VPnPData> &pnp_list);
+  void buildVPnp(const Vector6d &extrinsic_params, const int dis_threshold,
+                 const bool show_residual, const pcl::PointCloud<pcl::PointXYZ>::Ptr &cam_edge_cloud_2d,
+                 const pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_line_cloud_3d,
+                 std::vector<VPnPData> &pnp_list);
 
-  cv::Mat
-  getConnectImg(const int dis_threshold,
-                const pcl::PointCloud<pcl::PointXYZ>::Ptr &rgb_edge_cloud,
-                const pcl::PointCloud<pcl::PointXYZ>::Ptr &depth_edge_cloud);
+  cv::Mat getConnectImg(const int dis_threshold,
+                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &rgb_edge_cloud,
+                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &depth_edge_cloud);
   cv::Mat getProjectionImg(const Vector6d &extrinsic_params);
   void initVoxel(const pcl::PointCloud<pcl::PointXYZI>::Ptr &input_cloud,
-                 const float voxel_size,
-                 std::unordered_map<VOXEL_LOC, Voxel *> &voxel_map);
-  void LiDAREdgeExtraction(
-      const std::unordered_map<VOXEL_LOC, Voxel *> &voxel_map,
-      const float ransac_dis_thre, const int plane_size_threshold,
-      pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_line_cloud_3d);
-  void calcDirection(const std::vector<Eigen::Vector2d> &points,
-                     Eigen::Vector2d &direction);
-  void calcResidual(const Vector6d &extrinsic_params,
-                    const std::vector<VPnPData> vpnp_list,
-                    std::vector<float> &residual_list);
-  void calcCovarance(const Vector6d &extrinsic_params,
-                     const VPnPData &vpnp_point, const float pixel_inc,
-                     const float range_inc, const float degree_inc,
-                     Eigen::Matrix2f &covarance);
-  // 相机内参
+                 const float voxel_size, std::unordered_map<VOXEL_LOC, Voxel *> &voxel_map);
+
+  void LiDAREdgeExtraction(const std::unordered_map<VOXEL_LOC, Voxel *> &voxel_map,
+                           const float ransac_dis_thre, const int plane_size_threshold,
+                           pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_line_cloud_3d);
+
+  void calcDirection(const std::vector<Eigen::Vector2d> &points, Eigen::Vector2d &direction);
+  void calcResidual(const Vector6d &extrinsic_params, const std::vector<VPnPData> vpnp_list, std::vector<float> &residual_list);
+  void calcCovarance(const Vector6d &extrinsic_params, const VPnPData &vpnp_point, const float pixel_inc, const float range_inc, const float degree_inc, Eigen::Matrix2f &covarance);
+
   float fx_, fy_, cx_, cy_, k1_, k2_, k3_, k4_, p1_, p2_, s_;
   int width_, height_;
   cv::Mat camera_matrix_;
@@ -140,12 +131,9 @@ public:
   cv::Mat rgb_image_;
   cv::Mat image_;
   cv::Mat grey_image_;
-  // 裁剪后的灰度图像
   cv::Mat cut_grey_image_;
 
-  // 初始旋转矩阵
   Eigen::Matrix3d init_rotation_matrix_;
-  // 初始平移向量
   Eigen::Vector3d init_translation_vector_;
 
   // 存储从pcd/bag处获取的原始点云
@@ -177,31 +165,34 @@ Calibration::Calibration(const std::string &image_file,
   }
   width_ = image_.cols;
   height_ = image_.rows;
+
   // check rgb or gray
   if (image_.type() == CV_8UC1) {
+    std::cout << "grayscale image" << std::endl;
     grey_image_ = image_;
   } else if (image_.type() == CV_8UC3) {
+    std::cout << "RGB image" << std::endl;
     cv::cvtColor(image_, grey_image_, cv::COLOR_BGR2GRAY);
   } else {
     std::string msg = "Unsupported image type, please use CV_8UC3 or CV_8UC1";
     ROS_ERROR_STREAM(msg.c_str());
     exit(-1);
   }
+  
+  // canny threshold - edge size (ideal for our case was 12)
+  // edge_minlen - minmum contour length to be added to edge PC
+  // grey image - input
+  // edge image - output of canny and contouring with appropriate thresholding
+  // rgb_edge_cloud_ - edge cloud formed by edge image above
   cv::Mat edge_image;
-
-  edgeDetector(rgb_canny_threshold_, rgb_edge_minLen_, grey_image_, edge_image,
-               rgb_egde_cloud_);
-  std::string msg = "Sucessfully extract edge from image, edge size:" +
-                    std::to_string(rgb_egde_cloud_->size());
+  edgeDetector(rgb_canny_threshold_, rgb_edge_minLen_, grey_image_, edge_image, rgb_egde_cloud_);
+  std::string msg = "Sucessfully extract edge from image, edge size:" + std::to_string(rgb_egde_cloud_->size());
   ROS_INFO_STREAM(msg.c_str());
 
-  raw_lidar_cloud_ =
-      pcl::PointCloud<pcl::PointXYZI>::Ptr(new pcl::PointCloud<pcl::PointXYZI>);
+  raw_lidar_cloud_ = pcl::PointCloud<pcl::PointXYZI>::Ptr(new pcl::PointCloud<pcl::PointXYZI>);
   ROS_INFO_STREAM("Loading point cloud from pcd file.");
   if (!pcl::io::loadPCDFile(pcd_file, *raw_lidar_cloud_)) {
-    // down_sampling_voxel(*raw_lidar_cloud_, 0.02);
-    std::string msg = "Sucessfully load pcd, pointcloud size: " +
-                      std::to_string(raw_lidar_cloud_->size());
+    std::string msg = "Sucessfully load pcd, pointcloud size: " + std::to_string(raw_lidar_cloud_->size());
     ROS_INFO_STREAM(msg.c_str());
   } else {
     std::string msg = "Unable to load " + pcd_file;
@@ -214,8 +205,7 @@ Calibration::Calibration(const std::string &image_file,
   std::vector<VoxelGrid> voxel_list;
   std::unordered_map<VOXEL_LOC, Voxel *> voxel_map;
   initVoxel(raw_lidar_cloud_, voxel_size_, voxel_map);
-  LiDAREdgeExtraction(voxel_map, ransac_dis_threshold_, plane_size_threshold_,
-                      plane_line_cloud_);
+  LiDAREdgeExtraction(voxel_map, ransac_dis_threshold_, plane_size_threshold_, plane_line_cloud_);
 };
 
 bool Calibration::loadCameraConfig(const std::string &camera_file) {
@@ -320,7 +310,7 @@ void Calibration::colorCloud(
   cv::Mat t_vec = (cv::Mat_<double>(3, 1) << extrinsic_params[3],
                    extrinsic_params[4], extrinsic_params[5]);
   std::vector<cv::Point2f> pts_2d;
-  projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff,pts_2d);
+  projectPoints(pts_3d, r_vec, t_vec, camera_matrix, distortion_coeff, pts_2d);
 
   int image_rows = rgb_img.rows;
   int image_cols = rgb_img.cols;
@@ -357,23 +347,19 @@ void Calibration::edgeDetector(
     const int &canny_threshold, const int &edge_threshold,
     const cv::Mat &src_img, cv::Mat &edge_img,
     pcl::PointCloud<pcl::PointXYZ>::Ptr &edge_cloud) {
-  int gaussian_size = 5;
-  cv::GaussianBlur(src_img, src_img, cv::Size(gaussian_size, gaussian_size), 0,
-                   0);
+  cv::GaussianBlur(src_img, src_img, cv::Size(5, 5), 0, 0);
   cv::Mat canny_result = cv::Mat::zeros(height_, width_, CV_8UC1);
-  cv::Canny(src_img, canny_result, canny_threshold, canny_threshold * 3, 3,
-            true);
+  cv::Canny(src_img, canny_result, canny_threshold, canny_threshold * 3, 3, true);
   std::vector<std::vector<cv::Point>> contours;
   std::vector<cv::Vec4i> hierarchy;
-  cv::findContours(canny_result, contours, hierarchy, cv::RETR_EXTERNAL,
-                   cv::CHAIN_APPROX_NONE, cv::Point(0, 0));
+  cv::findContours(canny_result, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE, cv::Point(0, 0));
   edge_img = cv::Mat::zeros(height_, width_, CV_8UC1);
+  edge_cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
 
-  edge_cloud =
-      pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
+  int ctr = 0;
   for (size_t i = 0; i < contours.size(); i++) {
     if (contours[i].size() > edge_threshold) {
-      cv::Mat debug_img = cv::Mat::zeros(height_, width_, CV_8UC1);
+      ++ctr;
       for (size_t j = 0; j < contours[i].size(); j++) {
         pcl::PointXYZ p;
         p.x = contours[i][j].x;
@@ -383,6 +369,13 @@ void Calibration::edgeDetector(
       }
     }
   }
+
+  if(DEBUG) {
+    std::cout << "num edges > edge threshold: " << ctr << "  |   total num edges: " << contours.size() << std::endl;
+    cv::imwrite("/home/data/output/canny_edges.png", canny_result);
+    cv::imwrite("/home/data/output/edge_img_after_contours.png", edge_img);
+  }
+
   for (int x = 0; x < edge_img.cols; x++) {
     for (int y = 0; y < edge_img.rows; y++) {
       if (edge_img.at<uchar>(y, x) == 255) {
@@ -396,9 +389,11 @@ void Calibration::edgeDetector(
   }
   edge_cloud->width = edge_cloud->points.size();
   edge_cloud->height = 1;
-  // cv::imshow("canny result", canny_result);
-  // cv::imshow("edge result", edge_img);
-  // cv::waitKey();
+
+  if(DEBUG) {
+    pcl::io::savePCDFileASCII("/home/data/output/edge_pcd_cloud_after_edge_detector.pcd", *edge_cloud);
+    std::cout << "Saved Edge Cloud PCD" << std::endl;
+  }
 }
 
 // TODO: update distortion here
@@ -466,7 +461,6 @@ void Calibration::projection(
           rgb_image_project.at<cv::Vec3b>(point_2d.y, point_2d.x)[1] =
               intensity / 150 * 255;
         }
-
       } else {
         float intensity = intensity_list[i];
         if (intensity > 100) {
@@ -636,6 +630,7 @@ bool Calibration::checkFov(const cv::Point2d &p) {
 void Calibration::initVoxel(
     const pcl::PointCloud<pcl::PointXYZI>::Ptr &input_cloud,
     const float voxel_size, std::unordered_map<VOXEL_LOC, Voxel *> &voxel_map) {
+
   ROS_INFO_STREAM("Building Voxel");
   // for voxel test
   srand((unsigned)time(NULL));
@@ -675,59 +670,56 @@ void Calibration::initVoxel(
       voxel_map[position]->voxel_color << r, g, b;
     }
   }
-  // sensor_msgs::PointCloud2 pub_cloud;
-  // pcl::toROSMsg(test_cloud, pub_cloud);
-  // pub_cloud.header.frame_id = "livox";
-  // rgb_cloud_pub_.publish(pub_cloud);
+  if(DEBUG) {
+    pcl::io::savePCDFileASCII("/home/data/output/voxel_map.pcd", test_cloud);
+  }
+
+  // assign points to each voxel here. Can save the voxel map by saving
+  // each *(iter->second->cloud) as a PCD
   for (auto iter = voxel_map.begin(); iter != voxel_map.end(); iter++) {
-    if (iter->second->cloud->size() > 20) {
-      down_sampling_voxel(*(iter->second->cloud), 0.02);
+    // change cloud size from 20 to 50 and only then downsample
+    if (iter->second->cloud->size() > 50) {
+      down_sampling_voxel(*(iter->second->cloud), down_sample_size_);
     }
   }
 }
 
+// main crux of algorithm
 void Calibration::LiDAREdgeExtraction(
     const std::unordered_map<VOXEL_LOC, Voxel *> &voxel_map,
     const float ransac_dis_thre, const int plane_size_threshold,
     pcl::PointCloud<pcl::PointXYZI>::Ptr &lidar_line_cloud_3d) {
   ROS_INFO_STREAM("Extracting Lidar Edge");
   ros::Rate loop(5000);
-  lidar_line_cloud_3d =
-      pcl::PointCloud<pcl::PointXYZI>::Ptr(new pcl::PointCloud<pcl::PointXYZI>);
+  lidar_line_cloud_3d = pcl::PointCloud<pcl::PointXYZI>::Ptr(new pcl::PointCloud<pcl::PointXYZI>);
+  
+  if(DEBUG) {
+    std::cout << "Iterating through Voxels for plane & line extraction.." << std::endl;
+  }
+
+  int ctr = 0, num_planes_with_plane_list_gt2 = 0;
   for (auto iter = voxel_map.begin(); iter != voxel_map.end(); iter++) {
-    if (iter->second->cloud->size() > 50) {
+    if (iter->second->cloud->size() > plane_size_threshold_) {
+      ++ctr;
       std::vector<Plane> plane_list;
-      // 创建一个体素滤波器
-      pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filter(
-          new pcl::PointCloud<pcl::PointXYZI>);
+      pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filter(new pcl::PointCloud<pcl::PointXYZI>);
       pcl::copyPointCloud(*iter->second->cloud, *cloud_filter);
-      //创建一个模型参数对象，用于记录结果
       pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-      // inliers表示误差能容忍的点，记录点云序号
       pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-      //创建一个分割器
       pcl::SACSegmentation<pcl::PointXYZI> seg;
-      // Optional,设置结果平面展示的点是分割掉的点还是分割剩下的点
       seg.setOptimizeCoefficients(true);
-      // Mandatory-设置目标几何形状
       seg.setModelType(pcl::SACMODEL_PLANE);
-      //分割方法：随机采样法
       seg.setMethodType(pcl::SAC_RANSAC);
-      //设置误差容忍范围，也就是阈值
-      if (iter->second->voxel_origin[0] < 10) {
-        seg.setDistanceThreshold(ransac_dis_thre);
-      } else {
-        seg.setDistanceThreshold(ransac_dis_thre);
-      }
+      seg.setDistanceThreshold(ransac_dis_thre);
       pcl::PointCloud<pcl::PointXYZRGB> color_planner_cloud;
       int plane_index = 0;
       while (cloud_filter->points.size() > 10) {
         pcl::PointCloud<pcl::PointXYZI> planner_cloud;
         pcl::ExtractIndices<pcl::PointXYZI> extract;
-        //输入点云
+        // 输入点云
         seg.setInputCloud(cloud_filter);
         seg.setMaxIterations(500);
-        //分割点云
+        // 分割点云
         seg.segment(*inliers, *coefficients);
         if (inliers->indices.size() == 0) {
           ROS_INFO_STREAM(
@@ -776,20 +768,35 @@ void Calibration::LiDAREdgeExtraction(
         extract.filter(cloud_f);
         *cloud_filter = cloud_f;
       }
-      if (plane_list.size() >= 2) {
-        sensor_msgs::PointCloud2 planner_cloud2;
-        pcl::toROSMsg(color_planner_cloud, planner_cloud2);
-        planner_cloud2.header.frame_id = "livox";
-        planner_cloud_pub_.publish(planner_cloud2);
-        loop.sleep();
+
+      std::cout << "Number of Planes for Voxel #" << ctr << " : " << plane_list.size() << std::endl;
+
+      // if condition not given, this will go to calcLine and get returned as the 
+      // line_cloud_list is empty
+      if(plane_list.size() < 2) continue;
+
+      if (DEBUG) {
+        std::string color_planner_cloud_name = "/home/data/output/color_planner_cloud_" + std::to_string(ctr) + ".pcd";
+        pcl::io::savePCDFileASCII(color_planner_cloud_name, color_planner_cloud);
+        num_planes_with_plane_list_gt2++;
       }
 
       std::vector<pcl::PointCloud<pcl::PointXYZI>> line_cloud_list;
-      calcLine(plane_list, voxel_size_, iter->second->voxel_origin,
-               line_cloud_list);
+
+      // line calculations from planes
+      calcLine(plane_list, voxel_size_, iter->second->voxel_origin, line_cloud_list);
+
+      std::cout << "Iterating through line cloud of size #" << ctr << " : " << line_cloud_list.size() << std::endl;
+      if(DEBUG) {
+        for(int i=0; i<line_cloud_list.size(); i++) {
+          const auto& line_cloud = line_cloud_list[i];
+          std::string line_cloud_name = "/home/data/output/line_cloud_" + std::to_string(ctr) + "_" + std::to_string(i) + ".pcd";
+          pcl::io::savePCDFileASCII(line_cloud_name, line_cloud);
+        }
+      }
+
       // ouster 5,normal 3
       if (line_cloud_list.size() > 0 && line_cloud_list.size() <= 8) {
-
         for (size_t cloud_index = 0; cloud_index < line_cloud_list.size();
              cloud_index++) {
           for (size_t i = 0; i < line_cloud_list[cloud_index].size(); i++) {
@@ -806,6 +813,12 @@ void Calibration::LiDAREdgeExtraction(
         }
       }
     }
+  }
+
+  if(DEBUG) {
+    std::cout << "Number of Voxels: " << voxel_map.size() << " | # Voxel Cloud Size > 50: " << ctr << " | # Voxel Plane List >= 2: " << num_planes_with_plane_list_gt2 << std::endl;
+    pcl::io::savePCDFileASCII ("/home/data/output/lidar_line_cloud_3d.pcd", *lidar_line_cloud_3d);
+    std::cout << "Saving Lidar Line Cloud.." << std::endl;
   }
 }
 
@@ -832,6 +845,7 @@ void Calibration::calcLine(
         float y2 = plane_list[plane_index2].p_center.y;
         float z2 = plane_list[plane_index2].p_center.z;
         float theta = a1 * a2 + b1 * b2 + c1 * c2;
+        
         //
         float point_dis_threshold = 0.00;
         if (theta > theta_max_ && theta < theta_min_) {
@@ -928,6 +942,7 @@ void Calibration::calcLine(
                 point[2] <= origin[2] + voxel_size + point_dis_threshold) {
               points.push_back(point);
             }
+
             // std::cout << "points size:" << points.size() << std::endl;
             if (points.size() == 2) {
               pcl::PointCloud<pcl::PointXYZI> line_cloud;
@@ -960,42 +975,23 @@ void Calibration::calcLine(
                                              pointNKNSquaredDistance1) > 0) &&
                     (kdtree2->nearestKSearch(p, K, pointIdxNKNSearch2,
                                              pointNKNSquaredDistance2) > 0)) {
+
                   float dis1 =
-                      pow(p.x - plane_list[plane_index1]
-                                    .cloud.points[pointIdxNKNSearch1[0]]
-                                    .x,
-                          2) +
-                      pow(p.y - plane_list[plane_index1]
-                                    .cloud.points[pointIdxNKNSearch1[0]]
-                                    .y,
-                          2) +
-                      pow(p.z - plane_list[plane_index1]
-                                    .cloud.points[pointIdxNKNSearch1[0]]
-                                    .z,
-                          2);
+                      pow(p.x - plane_list[plane_index1].cloud.points[pointIdxNKNSearch1[0]].x, 2) +
+                      pow(p.y - plane_list[plane_index1].cloud.points[pointIdxNKNSearch1[0]].y, 2) +
+                      pow(p.z - plane_list[plane_index1].cloud.points[pointIdxNKNSearch1[0]].z, 2);
                   float dis2 =
-                      pow(p.x - plane_list[plane_index2]
-                                    .cloud.points[pointIdxNKNSearch2[0]]
-                                    .x,
-                          2) +
-                      pow(p.y - plane_list[plane_index2]
-                                    .cloud.points[pointIdxNKNSearch2[0]]
-                                    .y,
-                          2) +
-                      pow(p.z - plane_list[plane_index2]
-                                    .cloud.points[pointIdxNKNSearch2[0]]
-                                    .z,
-                          2);
-                  if ((dis1 <
-                           min_line_dis_threshold_ * min_line_dis_threshold_ &&
-                       dis2 <
-                           max_line_dis_threshold_ * max_line_dis_threshold_) ||
-                      ((dis1 <
-                            max_line_dis_threshold_ * max_line_dis_threshold_ &&
-                        dis2 < min_line_dis_threshold_ *
-                                   min_line_dis_threshold_))) {
+                      pow(p.x - plane_list[plane_index2].cloud.points[pointIdxNKNSearch2[0]].x, 2) +
+                      pow(p.y - plane_list[plane_index2].cloud.points[pointIdxNKNSearch2[0]].y, 2) +
+                      pow(p.z - plane_list[plane_index2].cloud.points[pointIdxNKNSearch2[0]].z, 2);
+                  
+                  if ((dis1 < min_line_dis_threshold_ * min_line_dis_threshold_ &&
+                       dis2 < max_line_dis_threshold_ * max_line_dis_threshold_) ||
+                      ((dis1 < max_line_dis_threshold_ * max_line_dis_threshold_ &&
+                        dis2 < min_line_dis_threshold_ * min_line_dis_threshold_))) {
                     line_cloud.push_back(p);
                   }
+
                 }
               }
               if (line_cloud.size() > 10) {
@@ -1050,7 +1046,7 @@ void Calibration::buildVPnp(
                    extrinsic_params[4], extrinsic_params[5]);
   // project 3d-points into image view
   std::vector<cv::Point2f> pts_2d;
-  // debug
+  // DEBUG
   // std::cout << "camera_matrix:" << camera_matrix << std::endl;
   // std::cout << "distortion_coeff:" << distortion_coeff << std::endl;
   // std::cout << "r_vec:" << r_vec << std::endl;
@@ -1080,11 +1076,10 @@ void Calibration::buildVPnp(
       }
     }
   }
-  if (show_residual) {
-    cv::Mat residual_img =
-        getConnectImg(dis_threshold, cam_edge_cloud_2d, line_edge_cloud_2d);
+  if (show_residual && DEBUG) {
+    cv::Mat residual_img = getConnectImg(dis_threshold, cam_edge_cloud_2d, line_edge_cloud_2d);
     cv::imshow("residual", residual_img);
-    cv::waitKey(100);
+    cv::waitKey(50);
   }
   pcl::search::KdTree<pcl::PointXYZ>::Ptr kdtree(
       new pcl::search::KdTree<pcl::PointXYZ>());
@@ -1250,11 +1245,10 @@ void Calibration::buildPnp(
       img_pts_container[pts_2d[i].y][pts_2d[i].x].push_back(pi_3d);
     }
   }
-  if (show_residual) {
-    cv::Mat residual_img =
-        getConnectImg(dis_threshold, cam_edge_cloud_2d, line_edge_cloud_2d);
+  if (show_residual && DEBUG) {
+    cv::Mat residual_img = getConnectImg(dis_threshold, cam_edge_cloud_2d, line_edge_cloud_2d);
     cv::imshow("residual", residual_img);
-    cv::waitKey(100);
+    cv::waitKey(50);
   }
   pcl::search::KdTree<pcl::PointXYZ>::Ptr kdtree(
       new pcl::search::KdTree<pcl::PointXYZ>());
@@ -1418,7 +1412,7 @@ void Calibration::calcDirection(const std::vector<Eigen::Vector2d> &points,
   Eigen::MatrixXd evalsReal;
   evalsReal = evals.real();
   Eigen::MatrixXf::Index evalsMax;
-  evalsReal.rowwise().sum().maxCoeff(&evalsMax); //得到最大特征值的位置
+  evalsReal.rowwise().sum().maxCoeff(&evalsMax); // 得到最大特征值的位置
   direction << evecs.real()(0, evalsMax), evecs.real()(1, evalsMax);
 }
 

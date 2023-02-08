@@ -2,11 +2,11 @@
 #define LIDAR_CAMERA_COMMON_H
 #include <Eigen/Core>
 #include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
 #include <pcl/common/io.h>
 #include <stdio.h>
 #include <string>
 #include <unordered_map>
-#include <opencv2/opencv.hpp>
 #include <vector>
 
 struct PnPData {
@@ -33,6 +33,13 @@ typedef struct Plane {
   pcl::PointXYZ p_center;
   Eigen::Vector3d normal;
   int index;
+
+  void print() {
+    std::cout << "Plane Center: (" << p_center.x << ", " << p_center.y << ", " << p_center.z << ") " << std::endl;
+    std::cout << "Normal: " << normal.transpose() << std::endl;
+    std::cout << "Index: " << index << std::endl;
+  }
+
 } Plane;
 
 class VOXEL_LOC {
@@ -184,7 +191,7 @@ void rgb2grey(const cv::Mat &rgb_image, cv::Mat &grey_img) {
   }
 }
 
-void projectPoints(const std::vector <cv::Point3f> & points_3d,
+void projectPoints(const std::vector<cv::Point3f> &points_3d,
                    const cv::Mat &rvec, const cv::Mat &tvec,
                    const cv::Mat &cam_matrix, const cv::Mat &dist_coeffs,
                    std::vector<cv::Point2f> &points_2d) {
